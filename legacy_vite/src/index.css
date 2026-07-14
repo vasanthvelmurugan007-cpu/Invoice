@@ -1,0 +1,108 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  
+  /* Premium Dark Theme Palette */
+  --color-background-primary: #0b0d11;
+  --color-background-secondary: #13161c;
+  --color-background-tertiary: #1b1e25;
+  
+  /* Vibrant Accents */
+  --color-background-info: rgba(59, 130, 246, 0.15);
+  --color-background-success: rgba(16, 185, 129, 0.15);
+  --color-background-warning: rgba(245, 158, 11, 0.15);
+  --color-background-danger: rgba(239, 68, 68, 0.15);
+  
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #94a3b8;
+  --color-text-info: #60a5fa;
+  --color-text-success: #34d399;
+  --color-text-warning: #fbbf24;
+  --color-text-danger: #f87171;
+  
+  --color-border-secondary: #2dd4bf;
+  --color-border-tertiary: rgba(255, 255, 255, 0.08);
+  --color-border-info: rgba(59, 130, 246, 0.3);
+  --color-border-success: rgba(16, 185, 129, 0.3);
+
+  --border-radius-md: 10px;
+  --border-radius-lg: 16px;
+  
+  /* Glassmorphism */
+  --glass-bg: rgba(19, 22, 28, 0.65);
+  --glass-border: rgba(255, 255, 255, 0.05);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  color: var(--color-text-primary);
+  background-color: var(--color-background-primary);
+  background-image: radial-gradient(circle at 100% 0%, rgba(59, 130, 246, 0.12) 0%, transparent 40%),
+                    radial-gradient(circle at 0% 100%, rgba(16, 185, 129, 0.08) 0%, transparent 40%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-background-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: #2e3340;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-secondary);
+}
+
+/* Smooth Inputs & Selects */
+input, select, button {
+  font-family: inherit;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--color-text-primary);
+}
+input, select {
+  background: var(--color-background-tertiary) !important;
+  border: 1px solid var(--color-border-tertiary) !important;
+  border-radius: var(--border-radius-md);
+  padding: 8px 12px;
+}
+input:focus, select:focus {
+  border-color: var(--color-text-info) !important;
+  box-shadow: 0 0 0 3px var(--color-background-info) !important;
+  outline: none;
+}
+
+button {
+  background: var(--color-background-tertiary);
+  border: 1px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-md);
+}
+button:hover {
+  background: var(--color-background-secondary);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+button:active {
+  transform: scale(0.97);
+}
+/* Glass effect class */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: var(--border-radius-lg);
+}
