@@ -4,9 +4,17 @@ import { db } from "../../../db";
 import { auditorClients, tenants, invoices, monthlyPeriods } from "../../../db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { getCurrentPeriod } from "../../../lib/period-utils";
+import { getCurrentUser } from "../../../lib/auth-utils";
 
 export async function getAuditorClients(auditorId: string) {
+  // @skip-tenant-check - Authorization handled via getCurrentUser().id matching the auditor
   try {
+    const user = await getCurrentUser();
+    if (!user || user.role !== "auditor") {
+      return { success: false, error: "Unauthorized" };
+    }
+    const safeAuditorId = user.id;
+
     const { month, year } = getCurrentPeriod();
     const monthStr = month < 10 ? `0${month}` : `${month}`;
     const startDate = `${year}-${monthStr}-01`;
@@ -24,7 +32,7 @@ export async function getAuditorClients(auditorId: string) {
       })
       .from(auditorClients)
       .innerJoin(tenants, eq(auditorClients.tenantId, tenants.id))
-      .where(and(eq(auditorClients.auditorId, auditorId), eq(auditorClients.status, "active")))
+      .where(and(eq(auditorClients.auditorId, safeAuditorId), eq(auditorClients.status, "active")))
       .execute();
 
     const clientSummaries = [];

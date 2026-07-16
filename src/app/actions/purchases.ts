@@ -1,9 +1,9 @@
 "use server";
 
 import { db } from "../../db";
-import { purchases, tenants } from "../../db/schema";
+import { purchases, tenants, monthlyPeriods } from "../../db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { getCurrentUser, getTenantForUser } from "../../lib/auth-utils";
+import { getCurrentUser, getTenantForUser, assertTenantAccess } from "../../lib/auth-utils";
 import { revalidatePath } from "next/cache";
 import { logAction } from "../../lib/audit";
 
@@ -11,6 +11,7 @@ export async function getPurchases(filters?: { vendorSearch?: string; itcOnly?: 
   try {
     const user = await getCurrentUser();
     const tenant = await getTenantForUser(user.id);
+    await assertTenantAccess(user.id, tenant.id, "view");
 
     let query = db.select().from(purchases).where(eq(purchases.tenantId, tenant.id));
 
@@ -50,6 +51,30 @@ export async function savePurchase(data: {
   try {
     const user = await getCurrentUser();
     const tenant = await getTenantForUser(user.id);
+    await assertTenantAccess(user.id, tenant.id, "owner");
+
+    // Section 2: Period Locking Enforcement
+    const invDate = new Date(data.invoiceDate);
+    if (!isNaN(invDate.getTime())) {
+      const month = invDate.getMonth() + 1;
+      const year = invDate.getFullYear();
+      const [period] = await db
+        .select()
+        .from(monthlyPeriods)
+        .where(
+          and(
+            eq(monthlyPeriods.tenantId, tenant.id),
+            eq(monthlyPeriods.periodMonth, month),
+            eq(monthlyPeriods.periodYear, year)
+          )
+        )
+        .limit(1)
+        .execute();
+
+      if (period && (period.status === "locked" || period.status === "filed")) {
+        return { success: false, error: `Period ${month}/${year} is locked or filed.` };
+      }
+    }
 
     const values = {
       tenantId: tenant.id,
@@ -99,10 +124,36 @@ export async function deletePurchase(id: string) {
   try {
     const user = await getCurrentUser();
     const tenant = await getTenantForUser(user.id);
+    await assertTenantAccess(user.id, tenant.id, "owner");
 
     const [existing] = await db.select().from(purchases).where(eq(purchases.id, id)).limit(1);
 
     if (!existing) return { success: false, error: "Purchase entry not found" };
+
+    // Section 2: Period Locking Enforcement
+    if (existing.invoiceDate) {
+      const invDate = new Date(existing.invoiceDate);
+      if (!isNaN(invDate.getTime())) {
+        const month = invDate.getMonth() + 1;
+        const year = invDate.getFullYear();
+        const [period] = await db
+          .select()
+          .from(monthlyPeriods)
+          .where(
+            and(
+              eq(monthlyPeriods.tenantId, tenant.id),
+              eq(monthlyPeriods.periodMonth, month),
+              eq(monthlyPeriods.periodYear, year)
+            )
+          )
+          .limit(1)
+          .execute();
+
+        if (period && (period.status === "locked" || period.status === "filed")) {
+          return { success: false, error: `Period ${month}/${year} is locked or filed.` };
+        }
+      }
+    }
 
     await db.delete(purchases).where(eq(purchases.id, id));
 

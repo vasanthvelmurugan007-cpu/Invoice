@@ -1,4 +1,5 @@
-import { pgTable, uuid, text, timestamp, integer, numeric, boolean, date, jsonb, varchar } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, integer, numeric, boolean, date, jsonb, varchar, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 // Tenants represent client businesses
 export const tenants = pgTable('tenants', {
@@ -50,9 +51,33 @@ export const purchases = pgTable('purchases', {
   igst: numeric('igst', { precision: 12, scale: 2 }).default('0'),
   totalAmount: numeric('total_amount', { precision: 12, scale: 2 }).notNull(),
   hsnCode: text('hsn_code'),
+  hsnRate: integer('hsn_rate'),
   category: text('category'), // 'goods' | 'services'
   itcEligible: boolean('itc_eligible').default(true),
+  status: text('status').notNull().default('confirmed'), // 'pending_review' | 'confirmed'
   createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const tenantWhatsappNumbers = pgTable('tenant_whatsapp_numbers', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  tenantId: uuid('tenant_id').references(() => tenants.id, { onDelete: 'cascade' }).notNull(),
+  phoneNumber: text('phone_number').notNull(), // E.164
+  verified: boolean('verified').default(false),
+  verifiedAt: timestamp('verified_at'),
+  verificationCode: text('verification_code'),
+  codeExpiresAt: timestamp('code_expires_at'),
+  verificationAttempts: integer('verification_attempts').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => ({
+  uniqueVerifiedPhoneIdx: uniqueIndex('tenant_whatsapp_verified_phone_idx')
+    .on(table.phoneNumber)
+    .where(sql`verified = true`),
+}));
+
+export const whatsappProcessedMessages = pgTable('whatsapp_processed_messages', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  messageId: text('message_id').notNull().unique(),
+  processedAt: timestamp('processed_at').defaultNow(),
 });
 
 // Audit trail
@@ -75,6 +100,8 @@ export const gstFilingPackages = pgTable('gst_filing_packages', {
   preparedBy: uuid('prepared_by').notNull(), // CA's auth.users id
   periodMonth: integer('period_month').notNull(),
   periodYear: integer('period_year').notNull(),
+  filingType: varchar('filing_type', { length: 20 }).notNull().default('GSTR-1'), // 'GSTR-1' | 'GSTR-3B'
+  version: integer('version').notNull().default(1),
   status: text('status').notNull().default('draft'), // 'draft' | 'validated' | 'uploaded' | 'acknowledged'
   validationErrors: jsonb('validation_errors'),
   gstr1Url: text('gstr1_url'),
@@ -82,7 +109,11 @@ export const gstFilingPackages = pgTable('gst_filing_packages', {
   hsnSummaryUrl: text('hsn_summary_url'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
-});
+}, (table) => ({
+  uniqueFilingIdx: uniqueIndex('gst_filing_packages_tenant_period_type_idx').on(
+    table.tenantId, table.periodMonth, table.periodYear, table.filingType
+  ),
+}));
 
 // Invoices
 export const invoices = pgTable('invoices', {
@@ -98,6 +129,7 @@ export const invoices = pgTable('invoices', {
   dcDate: date('dc_date'),
   vehicleNumber: text('vehicle_number'),
   items: jsonb('items').notNull(), // Array of items
+  hsnRate: integer('hsn_rate'), // Snapshot for invoice level (if single rate) or fallback
   deliveryCharge: numeric('delivery_charge', { precision: 12, scale: 2 }).default('0'),
   packagingCharge: numeric('packaging_charge', { precision: 12, scale: 2 }).default('0'),
   totalAmount: numeric('total_amount', { precision: 12, scale: 2 }).notNull(),
@@ -133,9 +165,13 @@ export const products = pgTable('products', {
 
 export const hsnMaster = pgTable('hsn_master', {
   id: uuid('id').defaultRandom().primaryKey(),
-  code: varchar('code', { length: 8 }).unique().notNull(),
+  code: varchar('code', { length: 8 }).notNull(), // Removed .unique()
   description: text('description').notNull(),
   gstRate: integer('gst_rate').notNull(), // stored as percentage x 100, e.g. 18% = 1800
   type: varchar('type', { length: 3 }).notNull(), // 'HSN' | 'SAC'
+  effectiveFrom: date('effective_from').notNull().defaultNow(),
+  effectiveTo: date('effective_to'),
   createdAt: timestamp('created_at').defaultNow(),
-});
+}, (table) => ({
+  uniqueCodeDateIdx: uniqueIndex('hsn_code_effective_from_idx').on(table.code, table.effectiveFrom),
+}));

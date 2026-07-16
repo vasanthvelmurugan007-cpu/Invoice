@@ -4,7 +4,7 @@ import { db } from "../../db";
 import { auditorClients, tenants } from "../../db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { getCurrentUser } from "../../lib/auth-utils";
+import { getCurrentUser, assertTenantAccess } from "../../lib/auth-utils";
 import { logAction } from "../../lib/audit";
 
 export async function sendCaInvite(email: string, permissionLevel: string, tenantId: string) {
@@ -13,6 +13,8 @@ export async function sendCaInvite(email: string, permissionLevel: string, tenan
     if (!user || (user.role !== "owner" && user.role !== "admin")) {
       return { success: false, error: "Unauthorized" };
     }
+    
+    await assertTenantAccess(user.id, tenantId, "owner");
 
     // Get tenant business name
     const tenantList = await db.select().from(tenants).where(eq(tenants.id, tenantId)).limit(1);
@@ -75,6 +77,10 @@ export async function revokeCaAccess(auditorClientId: string) {
     if (!client) {
       return { success: false, error: "Invitation not found" };
     }
+    
+    if (client.tenantId) {
+      await assertTenantAccess(user.id, client.tenantId, "owner");
+    }
 
     await db
       .update(auditorClients)
@@ -115,6 +121,10 @@ export async function updateCaPermission(auditorClientId: string, newPermission:
     if (!client) {
       return { success: false, error: "Invitation not found" };
     }
+    
+    if (client.tenantId) {
+      await assertTenantAccess(user.id, client.tenantId, "owner");
+    }
 
     await db
       .update(auditorClients)
@@ -139,12 +149,13 @@ export async function updateCaPermission(auditorClientId: string, newPermission:
   }
 }
 
-export async function acceptCaInvite(token: string) {
+export async function acceptCaInvite(inviteToken: string) {
+  // @skip-tenant-check - Authorization handled via inviteToken ownership instead of specific tenantId
   try {
     const [client] = await db
       .select()
       .from(auditorClients)
-      .where(eq(auditorClients.inviteToken, token))
+      .where(eq(auditorClients.inviteToken, inviteToken))
       .limit(1);
 
     if (!client) {

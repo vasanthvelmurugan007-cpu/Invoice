@@ -3,13 +3,20 @@
 import { db } from "../../../../../db";
 import { invoices, tenants, gstFilingPackages, monthlyPeriods } from "../../../../../db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { getCurrentUser } from "../../../../../lib/auth-utils";
+import { getCurrentUser, assertTenantAccess } from "../../../../../lib/auth-utils";
 import { logAction } from "../../../../../lib/audit";
 import { validateGstin } from "../../../../../lib/gstin-utils";
 import { revalidatePath } from "next/cache";
 
 export async function validateFilingData(tenantId: string, month: number, year: number) {
   try {
+    const user = await getCurrentUser();
+    if (!user || user.role !== "auditor") {
+      return { success: false, error: "Unauthorized" };
+    }
+    
+    await assertTenantAccess(user.id, tenantId, "auditor");
+    
     const monthStr = month < 10 ? `0${month}` : `${month}`;
     const startDate = `${year}-${monthStr}-01`;
     const endDate = `${year}-${monthStr}-31`; // Approx filter
@@ -109,54 +116,55 @@ export async function generateFilingPackageFile(
     if (!user || user.role !== "auditor") {
       return { success: false, error: "Unauthorized" };
     }
+    
+    await assertTenantAccess(user.id, tenantId, "auditor");
 
-    // Check if package already exists
-    const [existing] = await db
-      .select()
-      .from(gstFilingPackages)
-      .where(
-        and(
-          eq(gstFilingPackages.tenantId, tenantId),
-          eq(gstFilingPackages.periodMonth, month),
-          eq(gstFilingPackages.periodYear, year)
-        )
-      )
-      .limit(1)
-      .execute();
+    // Implement Actual Idempotency (Section 5 Fix)
+    const filingTypeMap: Record<string, string> = {
+      "gstr-1": "GSTR-1",
+      "gstr-3b": "GSTR-3B",
+      "hsn": "HSN-Summary"
+    };
+    const filingTypeStr = filingTypeMap[fileType] || "GSTR-1";
 
-    // Create a mock URL representing Supabase storage bucket
-    const mockStorageUrl = `/packages/gst-packages_${tenantId}_${year}_${month}_${fileType}.csv`;
-
-    const updateFields: any = {
+    const insertValues: any = {
       tenantId,
       preparedBy: user.id,
       periodMonth: month,
       periodYear: year,
+      filingType: filingTypeStr,
+      version: 1,
+      status: "draft",
       updatedAt: new Date(),
     };
 
-    if (fileType === "gstr-1") updateFields.gstr1Url = mockStorageUrl;
-    if (fileType === "gstr-3b") updateFields.gstr3bUrl = mockStorageUrl;
-    if (fileType === "hsn") updateFields.hsnSummaryUrl = mockStorageUrl;
+    const mockStorageUrl = `/packages/gst-packages_${tenantId}_${year}_${month}_${fileType}.csv`;
 
-    let packageId = "";
+    if (fileType === "gstr-1") insertValues.gstr1Url = mockStorageUrl;
+    if (fileType === "gstr-3b") insertValues.gstr3bUrl = mockStorageUrl;
+    if (fileType === "hsn") insertValues.hsnSummaryUrl = mockStorageUrl;
 
-    if (existing) {
-      packageId = existing.id;
-      await db
-        .update(gstFilingPackages)
-        .set(updateFields)
-        .where(eq(gstFilingPackages.id, existing.id));
-    } else {
-      const [newPkg] = await db
-        .insert(gstFilingPackages)
-        .values({
-          ...updateFields,
-          status: "draft",
-        })
-        .returning();
-      packageId = newPkg.id;
-    }
+    const [newPkg] = await db
+      .insert(gstFilingPackages)
+      .values(insertValues)
+      .onConflictDoUpdate({
+        target: [
+          gstFilingPackages.tenantId,
+          gstFilingPackages.periodMonth,
+          gstFilingPackages.periodYear,
+          gstFilingPackages.filingType
+        ],
+        set: {
+          version: sql`${gstFilingPackages.version} + 1`,
+          gstr1Url: fileType === "gstr-1" ? mockStorageUrl : sql`${gstFilingPackages.gstr1Url}`,
+          gstr3bUrl: fileType === "gstr-3b" ? mockStorageUrl : sql`${gstFilingPackages.gstr3bUrl}`,
+          hsnSummaryUrl: fileType === "hsn" ? mockStorageUrl : sql`${gstFilingPackages.hsnSummaryUrl}`,
+          updatedAt: new Date(),
+        }
+      })
+      .returning();
+
+    const packageId = newPkg.id;
 
     await logAction({
       tenantId,
@@ -180,6 +188,8 @@ export async function markPeriodAsFiled(tenantId: string, month: number, year: n
     if (!user || user.role !== "auditor") {
       return { success: false, error: "Unauthorized" };
     }
+
+    await assertTenantAccess(user.id, tenantId, "auditor");
 
     // Update filing package status
     await db

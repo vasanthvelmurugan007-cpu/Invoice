@@ -84,3 +84,48 @@ ALTER TABLE hsn_master ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "hsn_select_policy" ON hsn_master
   FOR SELECT TO authenticated USING (true);
 
+-- Section 2: Trigger for Period Locking (Defense in Depth)
+CREATE OR REPLACE FUNCTION check_period_lock() RETURNS trigger AS $$
+DECLARE
+  period_status varchar;
+  inv_date date;
+  inv_month int;
+  inv_year int;
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    inv_date := OLD.invoice_date;
+  ELSE
+    inv_date := NEW.invoice_date;
+  END IF;
+
+  inv_month := EXTRACT(MONTH FROM inv_date);
+  inv_year := EXTRACT(YEAR FROM inv_date);
+
+  SELECT status INTO period_status
+  FROM monthly_periods
+  WHERE tenant_id = COALESCE(NEW.tenant_id, OLD.tenant_id)
+    AND period_month = inv_month
+    AND period_year = inv_year
+  LIMIT 1;
+
+  IF period_status IN ('locked', 'filed') THEN
+    RAISE EXCEPTION 'Cannot modify data for a locked or filed period (Month: %, Year: %)', inv_month, inv_year;
+  END IF;
+
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_check_period_lock_invoices ON invoices;
+CREATE TRIGGER trg_check_period_lock_invoices
+  BEFORE INSERT OR UPDATE OR DELETE ON invoices
+  FOR EACH ROW EXECUTE FUNCTION check_period_lock();
+
+DROP TRIGGER IF EXISTS trg_check_period_lock_purchases ON purchases;
+CREATE TRIGGER trg_check_period_lock_purchases
+  BEFORE INSERT OR UPDATE OR DELETE ON purchases
+  FOR EACH ROW EXECUTE FUNCTION check_period_lock();

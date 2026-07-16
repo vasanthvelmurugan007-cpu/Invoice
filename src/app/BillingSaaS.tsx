@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { HsnAutocomplete } from "../components/hsn-autocomplete";
+import { getInvoices, saveInvoice as saveInvoiceAction } from "./actions/invoices";
 
 
 const MODULES = ["Dashboard", "Invoices", "Delivery Challan", "Customers", "Products", "GSTR Export", "Settings"];
@@ -65,6 +66,7 @@ function numberToWords(num) {
 }
 
 export function generateInvoiceHtml(invoice, settings, customers, copyTitle) {
+  const template = settings?.template || "modern";
   const customer = customers.find(c => c.name === invoice.customer) || {};
   const items = invoice.items || [];
   const getItemDetailsStr = (item: any) => {
@@ -868,10 +870,10 @@ function CreateInvoiceModal({ onSave, onClose, customers, products, settings, ed
   }, 0);
   const grandTotal = Math.round(taxableAmount + totalTax);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!customer) return alert("Please select a customer");
     if (items.every(i => !i.name)) return alert("Please add at least one item");
-    onSave({
+    await onSave({
       id: invoiceId || "INV-1",
       date, dueDate, dcNumber, dcDate, vehicleNumber, customer, type, hidePriceForDC,
       poNumber, poDate, poItem,
@@ -1247,17 +1249,29 @@ export default function BillingSaaS({ user }: { user: any }) {
     if (p) {
       try { setProducts(JSON.parse(p)); } catch(e){}
     }
-    const i = localStorage.getItem("billing_invoices");
-    if (i) {
-      try { setInvoices(JSON.parse(i)); } catch(e){}
-    }
+    
+    getInvoices().then(res => {
+      if (res.success && res.invoices) {
+        // Map DB invoices to local format
+        const mapped = res.invoices.map(i => ({
+          ...i,
+          id: i.invoiceNumber,
+          date: i.invoiceDate,
+          customer: i.customerName,
+          total: Number(i.totalAmount),
+          type: i.type,
+          status: i.status
+        }));
+        setInvoices(mapped);
+      }
+    });
     setLoaded(true);
   }, []);
 
   useEffect(() => { if (loaded) localStorage.setItem("billing_settings", JSON.stringify(settings)); }, [settings, loaded]);
   useEffect(() => { if (loaded) localStorage.setItem("billing_customers", JSON.stringify(customers)); }, [customers, loaded]);
   useEffect(() => { if (loaded) localStorage.setItem("billing_products", JSON.stringify(products)); }, [products, loaded]);
-  useEffect(() => { if (loaded) localStorage.setItem("billing_invoices", JSON.stringify(invoices)); }, [invoices, loaded]);
+  // localStorage.setItem("billing_invoices") removed for server-side persistence
   const [showCreate, setShowCreate] = useState(false);
   const [showPreview, setShowPreview] = useState(null);
   const [showGSTR, setShowGSTR] = useState(false);
@@ -1269,7 +1283,12 @@ export default function BillingSaaS({ user }: { user: any }) {
   const [settingsForm, setSettingsForm] = useState(settings);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  const saveInvoice = (inv) => {
+  const saveInvoice = async (inv) => {
+    const res = await saveInvoiceAction(inv);
+    if (!res.success) {
+      alert(res.error);
+      return;
+    }
     setInvoices(prev => {
       const idx = prev.findIndex(i => i.id === inv.id);
       if (idx >= 0) { const a = [...prev]; a[idx] = inv; return a; }
@@ -1282,8 +1301,16 @@ export default function BillingSaaS({ user }: { user: any }) {
     if (confirm(`Delete ${id}?`)) setInvoices(prev => prev.filter(i => i.id !== id));
   };
 
-  const markPaid = (id) => {
-    setInvoices(prev => prev.map(i => i.id === id ? { ...i, status: "Paid" } : i));
+  const markPaid = async (id) => {
+    const inv = invoices.find(i => i.id === id);
+    if (inv) {
+      const res = await saveInvoiceAction({ ...inv, status: "Paid" });
+      if (!res.success) {
+        alert(res.error);
+        return;
+      }
+      setInvoices(prev => prev.map(i => i.id === id ? { ...i, status: "Paid" } : i));
+    }
   };
 
   const saveCustomer = (c) => {

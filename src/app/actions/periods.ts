@@ -4,13 +4,15 @@ import { db } from "../../db";
 import { monthlyPeriods } from "../../db/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { logAction } from "../../lib/audit";
-import { getCurrentUser, getTenantForUser } from "../../lib/auth-utils";
+import { getCurrentUser, getTenantForUser, assertTenantAccess } from "../../lib/auth-utils";
 import { revalidatePath } from "next/cache";
 
 export async function lockPeriod(tenantId: string, month: number, year: number) {
   try {
     const user = await getCurrentUser();
     if (!user) return { success: false, error: "Unauthorized" };
+    
+    await assertTenantAccess(user.id, tenantId, "auditor");
 
     const actorRole = user.role;
 
@@ -76,6 +78,8 @@ export async function unlockPeriod(tenantId: string, month: number, year: number
   try {
     const user = await getCurrentUser();
     if (!user) return { success: false, error: "Unauthorized" };
+    
+    await assertTenantAccess(user.id, tenantId, "auditor");
 
     const [existing] = await db
       .select()
@@ -127,6 +131,9 @@ export async function unlockPeriod(tenantId: string, month: number, year: number
 
 export async function getPeriodStatus(tenantId: string, month: number, year: number) {
   try {
+    const user = await getCurrentUser();
+    await assertTenantAccess(user.id, tenantId, "view");
+    
     const [period] = await db
       .select()
       .from(monthlyPeriods)
@@ -148,6 +155,7 @@ export async function getPeriodStatus(tenantId: string, month: number, year: num
 }
 
 export async function getLockedPeriods() {
+  // @skip-tenant-check - Authorization securely fetches single tenant for the owner without accepting tenantId as arg
   try {
     const user = await getCurrentUser();
     const tenant = await getTenantForUser(user.id);

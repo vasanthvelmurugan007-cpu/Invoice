@@ -3,7 +3,7 @@
 import { db } from "../../../../db";
 import { invoices, purchases, tenants, gstFilingPackages, monthlyPeriods } from "../../../../db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { getCurrentUser } from "../../../../lib/auth-utils";
+import { getCurrentUser, assertTenantAccess } from "../../../../lib/auth-utils";
 import { logAction } from "../../../../lib/audit";
 
 export async function getClientData(tenantId: string, month: number, year: number) {
@@ -12,6 +12,8 @@ export async function getClientData(tenantId: string, month: number, year: numbe
     if (!user || user.role !== "auditor") {
       return { success: false, error: "Unauthorized" };
     }
+    
+    await assertTenantAccess(user.id, tenantId, "auditor");
 
     const monthStr = month < 10 ? `0${month}` : `${month}`;
     const startDate = `${year}-${monthStr}-01`;

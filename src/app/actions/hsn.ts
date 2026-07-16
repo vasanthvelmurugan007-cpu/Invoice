@@ -2,7 +2,7 @@
 
 import { db } from "../../db";
 import { hsnMaster } from "../../db/schema";
-import { or, ilike, eq } from "drizzle-orm";
+import { or, ilike, eq, and, isNull, lte, gt, sql } from "drizzle-orm";
 
 // 50 common HSN/SAC codes relevant to Indian SMBs
 const COMMON_CODES = [
@@ -73,6 +73,19 @@ async function ensureSeeded() {
   }
 }
 
+export async function backfillHSNVersions() {
+  try {
+    // Strategy: Update all rows missing effectiveFrom to the start of GST (2017-07-01)
+    await db.update(hsnMaster)
+      .set({ effectiveFrom: '2017-07-01' })
+      .where(isNull(hsnMaster.effectiveFrom));
+    return { success: true };
+  } catch (error) {
+    console.error("Backfill failed:", error);
+    return { success: false };
+  }
+}
+
 export async function searchHSN(query: string) {
   try {
     await ensureSeeded();
@@ -81,9 +94,13 @@ export async function searchHSN(query: string) {
       .select()
       .from(hsnMaster)
       .where(
-        or(
-          ilike(hsnMaster.code, cleanQuery),
-          ilike(hsnMaster.description, cleanQuery)
+        and(
+          or(
+            ilike(hsnMaster.code, cleanQuery),
+            ilike(hsnMaster.description, cleanQuery)
+          ),
+          lte(hsnMaster.effectiveFrom, sql`CURRENT_DATE`),
+          or(isNull(hsnMaster.effectiveTo), gt(hsnMaster.effectiveTo, sql`CURRENT_DATE`))
         )
       )
       .limit(10);
@@ -104,7 +121,13 @@ export async function getHSNByCode(code: string) {
     const results = await db
       .select()
       .from(hsnMaster)
-      .where(eq(hsnMaster.code, code))
+      .where(
+        and(
+          eq(hsnMaster.code, code),
+          lte(hsnMaster.effectiveFrom, sql`CURRENT_DATE`),
+          or(isNull(hsnMaster.effectiveTo), gt(hsnMaster.effectiveTo, sql`CURRENT_DATE`))
+        )
+      )
       .limit(1);
     if (results.length > 0) {
       return results[0];
