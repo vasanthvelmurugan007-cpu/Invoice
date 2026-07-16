@@ -1322,11 +1322,15 @@ export default function BillingSaaS({ user }: { user: any }) {
       {/* Sidebar */}
       <div style={{ width: sidebarOpen ? 200 : 52, background: "var(--color-background-primary)", borderRight: "0.5px solid var(--color-border-tertiary)", display: "flex", flexDirection: "column", transition: "width 0.2s", overflow: "hidden", flexShrink: 0 }}>
         <div style={{ padding: "14px 14px 10px", borderBottom: "0.5px solid var(--color-border-tertiary)", display: "flex", alignItems: "center", gap: 10, minHeight: 52 }}>
-          {sidebarOpen ? (
-            <img src="/logo.png" alt="InvoiceHub Logo" style={{ height: 28, width: "auto" }} />
-          ) : (
-            <div style={{ width: 26, height: 26, borderRadius: "var(--border-radius-md)", background: "var(--color-background-info)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <i className="ti ti-file-invoice" style={{ fontSize: 14, color: "var(--color-text-info)" }} aria-hidden="true"></i>
+          <div style={{ width: 26, height: 26, borderRadius: "var(--border-radius-md)", background: "var(--color-background-info)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <i className="ti ti-receipt-2" style={{ fontSize: 14, color: "var(--color-text-info)" }} aria-hidden="true"></i>
+          </div>
+          {sidebarOpen && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+              <span style={{ fontWeight: 500, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>InvoiceHub</span>
+              {user?.role === "admin" && (
+                <span style={{ fontSize: 9, fontWeight: 700, background: "linear-gradient(135deg, #f59e0b, #d97706)", color: "#fff", padding: "1px 4px", borderRadius: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>PRO</span>
+              )}
             </div>
           )}
           <div style={{ flex: 1 }}></div>
