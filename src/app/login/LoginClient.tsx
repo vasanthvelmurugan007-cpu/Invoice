@@ -66,7 +66,7 @@ export default function LoginClient() {
         <div style={{ textAlign: "center", marginBottom: 30 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 12 }}>
             <div style={{ width: 44, height: 44, borderRadius: "var(--border-radius-lg)", background: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0, boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}>
-              <img src="/logo.png" alt="Logo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <img src="/invoicehub-logo.png" alt="Logo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             </div>
             <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--color-text-primary)", margin: 0 }}>InvoiceHub</h1>
           </div>

@@ -28,7 +28,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <div className="w-64 bg-slate-900/60 backdrop-blur-md border-r border-slate-800 flex flex-col overflow-hidden shrink-0">
         <div className="p-4 border-b border-slate-800 flex items-center gap-3 min-h-[52px]">
           <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
-            <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
+            <img src="/invoicehub-logo.png" alt="Logo" className="w-full h-full object-cover" />
           </div>
           <span className="font-bold text-sm text-white tracking-wide truncate">InvoiceHub</span>
           {user.role === "admin" ? (

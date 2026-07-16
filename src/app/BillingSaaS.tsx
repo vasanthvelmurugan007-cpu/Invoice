@@ -1323,7 +1323,7 @@ export default function BillingSaaS({ user }: { user: any }) {
       <div style={{ width: sidebarOpen ? 200 : 52, background: "var(--color-background-primary)", borderRight: "0.5px solid var(--color-border-tertiary)", display: "flex", flexDirection: "column", transition: "width 0.2s", overflow: "hidden", flexShrink: 0 }}>
         <div style={{ padding: "14px 14px 10px", borderBottom: "0.5px solid var(--color-border-tertiary)", display: "flex", alignItems: "center", gap: 10, minHeight: 52 }}>
           <div style={{ width: 28, height: 28, borderRadius: 6, background: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0, boxShadow: "0 2px 4px rgba(0,0,0,0.05)" }}>
-            <img src="/logo.png" alt="Logo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <img src="/invoicehub-logo.png" alt="Logo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           </div>
           {sidebarOpen && (
             <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
