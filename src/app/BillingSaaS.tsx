@@ -7,44 +7,26 @@ import { getInvoices, saveInvoice as saveInvoiceAction } from "./actions/invoice
 const MODULES = ["Dashboard", "Invoices", "Delivery Challan", "Customers", "Products", "GSTR Export", "Settings"];
 
 const initialSettings = {
-  companyName: "Your Company Name",
-  gstin: "27ABCCT2727Q1ZX",
-  address: "64, Whitefield Main Rd, Palm Meadows",
-  city: "Bengaluru",
-  state: "KARNATAKA",
-  pincode: "560066",
-  mobile: "+91 9999999999",
-  bankName: "YES BANK",
-  accountNo: "66789999222445",
-  ifsc: "YESBBIN4567",
-  branch: "Koramangala",
-  upiId: "yourcompany@yesbank",
+  companyName: "",
+  gstin: "",
+  address: "",
+  city: "",
+  state: "",
+  pincode: "",
+  mobile: "",
+  bankName: "",
+  accountNo: "",
+  ifsc: "",
+  branch: "",
+  upiId: "",
   invoiceTemplate: "classic",
 };
 
-const initialCustomers = [
-  { id: 1, name: "Kishore Biyani", gstin: "29AABCK1234P1Z5", phone: "9999999999", address: "64, Whitefield Main Rd", city: "Bengaluru", state: "KARNATAKA", pincode: "560066" },
-  { id: 2, name: "Rajan Mehta Traders", gstin: "27AAACR5678Q1Z2", phone: "9888888888", address: "12, MG Road", city: "Mumbai", state: "MAHARASHTRA", pincode: "400001" },
-];
+const initialCustomers = [];
 
-const initialProducts = [
-  { id: 1, name: "Haldirams Samosa 200g", hsn: "392310", unit: "NOS", rate: 61.90, taxRate: 5 },
-  { id: 2, name: "Britannia Whole Wheat Bread", hsn: "392310", unit: "NOS", rate: 42.86, taxRate: 5 },
-  { id: 3, name: "Surf Excel Easy Wash 1kg", hsn: "392310", unit: "KGS", rate: 122.03, taxRate: 5 },
-  { id: 4, name: "Sanitizer", hsn: "392310", unit: "NOS", rate: 127.12, taxRate: 5 },
-  { id: 5, name: "Utensils Set", hsn: "76151030", unit: "NOS", rate: 1784.82, taxRate: 12 },
-  { id: 6, name: "Kitchen Towel Set", hsn: "392310", unit: "NOS", rate: 94.29, taxRate: 5 },
-  { id: 7, name: "Green Cotton Bedsheet", hsn: "392310", unit: "NOS", rate: 339.29, taxRate: 5 },
-  { id: 8, name: "Premium Medjool Dates", hsn: "392310", unit: "KGS", rate: 1875.00, taxRate: 5 },
-  { id: 9, name: "Fortune Sunflower Oil", hsn: "392310", unit: "LTR", rate: 200.00, taxRate: 5 },
-  { id: 10, name: "Haldiram's Bhujia Sev", hsn: "8708", unit: "NOS", rate: 190.48, taxRate: 5 },
-];
+const initialProducts = [];
 
-const demoInvoices = [
-  { id: "INV-3", date: "12 Apr 2025", customer: "Kishore Biyani", total: 9678, status: "Paid", type: "Invoice" },
-  { id: "INV-2", date: "05 Apr 2025", customer: "Rajan Mehta Traders", total: 14250, status: "Unpaid", type: "Invoice" },
-  { id: "DC-1", date: "02 Apr 2025", customer: "Kishore Biyani", total: 3200, status: "Delivered", type: "DC" },
-];
+const demoInvoices = [];
 
 function getNumberWords(num) {
   const a = ["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
