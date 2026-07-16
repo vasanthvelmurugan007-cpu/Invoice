@@ -13,11 +13,14 @@ async function monitorFailedAuth() {
 
   const windowStart = new Date(Date.now() - WINDOW_MINUTES * 60 * 1000);
 
-  // Group by IP (entityId) and User (userId)
+  // Group by IP and User from metadata
+  const ipField = sql<string>`${auditLogs.metadata}->>'ip'`;
+  const userField = sql<string>`${auditLogs.metadata}->>'email'`;
+
   const results = await db
     .select({
-      ip: auditLogs.entityId,
-      user: auditLogs.userId,
+      ip: ipField,
+      user: userField,
       count: sql<number>`cast(count(${auditLogs.id}) as int)`
     })
     .from(auditLogs)
@@ -27,7 +30,7 @@ async function monitorFailedAuth() {
         gte(auditLogs.createdAt, windowStart)
       )
     )
-    .groupBy(auditLogs.entityId, auditLogs.userId)
+    .groupBy(ipField, userField)
     .having(sql`count(${auditLogs.id}) > ${THRESHOLD}`);
 
   if (results.length > 0) {
