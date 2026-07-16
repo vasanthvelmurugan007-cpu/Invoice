@@ -18,11 +18,10 @@ export async function loginUser(email: string, password?: string) {
     try {
       await db.insert(auditLogs).values({
         tenantId: "00000000-0000-0000-0000-000000000000", // system tenant
-        userId: email,
+        actorId: "00000000-0000-0000-0000-000000000000",
+        actorRole: "unknown",
         action: "failed_auth",
-        entity: "user",
-        entityId: ip,
-        details: { reason: "rate_limited", remaining: limitCheck.remaining }
+        metadata: { email, ip, reason: "rate_limited", remaining: limitCheck.remaining }
       });
     } catch(e) {}
     return { success: false, error: "Too many login attempts. Please try again later." };
@@ -35,11 +34,10 @@ export async function loginUser(email: string, password?: string) {
     try {
       await db.insert(auditLogs).values({
         tenantId: "00000000-0000-0000-0000-000000000000",
-        userId: email,
+        actorId: "00000000-0000-0000-0000-000000000000",
+        actorRole: "unknown",
         action: "failed_auth",
-        entity: "user",
-        entityId: ip,
-        details: { reason: "invalid_credentials", remaining: limitCheck.remaining }
+        metadata: { email, ip, reason: "invalid_credentials", remaining: limitCheck.remaining }
       });
     } catch(e) {}
     return { success: false, error: "Invalid credentials" };
