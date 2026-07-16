@@ -64,10 +64,9 @@ export default function LoginClient() {
       }}>
         {/* Header */}
         <div style={{ textAlign: "center", marginBottom: 30 }}>
-          <div style={{ display: "inline-flex", width: 44, height: 44, borderRadius: "var(--border-radius-lg)", background: "rgba(99, 102, 241, 0.15)", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
-            <i className="ti ti-receipt-2" style={{ fontSize: 24, color: "var(--color-text-info)" }} aria-hidden="true"></i>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+            <img src="/logo.png" alt="InvoiceHub Logo" style={{ height: 48, width: "auto" }} />
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 600, color: "var(--color-text-primary)", margin: "0 0 6px 0" }}>InvoiceHub</h1>
           <p style={{ fontSize: 13, color: "var(--color-text-secondary)", margin: 0 }}>GST Billing & Chartered Accountant Auditor Portal</p>
         </div>
 

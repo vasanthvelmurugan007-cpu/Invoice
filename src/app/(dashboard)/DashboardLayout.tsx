@@ -27,10 +27,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {/* Sidebar */}
       <div className="w-64 bg-slate-900/60 backdrop-blur-md border-r border-slate-800 flex flex-col overflow-hidden shrink-0">
         <div className="p-4 border-b border-slate-800 flex items-center gap-3 min-h-[52px]">
-          <div className="w-7 h-7 rounded-lg bg-indigo-600/20 flex items-center justify-center">
-            <i className="ti ti-receipt-2 text-indigo-400 text-base" aria-hidden="true"></i>
-          </div>
-          <span className="font-bold text-sm text-white tracking-wide">InvoiceHub</span>
+          <img src="/logo.png" alt="InvoiceHub" className="h-8 w-auto" />
           {user.role === "admin" ? (
             <span className="text-[10px] bg-gradient-to-r from-amber-500 to-yellow-600 text-white px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">
               PRO
